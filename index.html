@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendrier avec Événements et Quantième</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --base-color: #48484800;
+            --red-color: #e04f39;
+            --orange-color: #fe8c27;
+            --green-color: #56c271;
+            --white-color: #FFFFFF;
+            --arrow-color: #00a5df;
+            --arrow-hover-color: #0056b3;
+            --link-color: #0038a1;
+            --link-hover-color: #000000;
+            --today-background-color: #007bff;
+            --today-text-color: #FFFFFF;
+            --event-background-color: #00a5df;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        html {
+            font-family: "Poppins", sans-serif;
+            font-size: 14px;
+            color: var(--white-color);
+            background-color: var(--base-color);
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+        }
+        .calendar {
+            width: 350px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            color: #000;
+            overflow-y: auto;
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .month-year {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .arrow {
+            font-size: 2rem;
+            color: var(--arrow-color);
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.3s;
+            padding: 0 15px;
+        }
+        .arrow:hover {
+            color: var(--arrow-hover-color);
+        }
+        .quantieme {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            font-style: italic;
+            color: var(--event-background-color);
+        }
+        .days-of-week {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background-color: #f0f0f0;
+            padding: 10px 0;
+            text-align: center;
+        }
+        .days-of-week div {
+            font-weight: bold;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            margin-top: 10px;
+        }
+        .calendar-grid div {
+            padding: 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .today {
+            background-color: var(--today-background-color);
+            color: var(--today-text-color);
+            border-radius: 50%;
+        }
+        .prev-date, .next-date {
+            color: #999;
+        }
+        .has-event {
+            background-color: var(--event-background-color);
+            color: #FFFFFF;
+            font-weight: bold;
+        }
+        .event-details {
+            width: 350px;
+            margin: 20px auto;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            color: #000;
+            display: none;
+        }
+        .event-details h3 {
+            font-size: 1.4rem;
+            color: var(--event-background-color);
+            margin-bottom: 10px;
+        }
+        .event-details p {
+            font-size: 1rem;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar">
+        <div class="calendar-header">
+            <span class="arrow" id="prevMonth">&#8592;</span>
+            <span class="month-year" id="monthYear"></span>
+            <span class="arrow" id="nextMonth">&#8594;</span>
+        </div>
+        <div class="quantieme" id="quantieme"></div>
+        <div class="days-of-week">
+            <div>Lun</div>
+            <div>Mar</div>
+            <div>Mer</div>
+            <div>Jeu</div>
+            <div>Ven</div>
+            <div>Sam</div>
+            <div>Dim</div>
+        </div>
+        <div class="calendar-grid" id="calendarDays"></div>
+    </div>
+    <div class="event-details" id="eventDetails">
+        <p id="eventName"></p>
+        <p id="eventTime"></p>
+        <p id="eventLocation"></p>
+    </div>
+    <script>
+        const colorList = [
+            { base: '#EF7C10', hover: '#EF7C10' },
+            { base: '#56c271', hover: '#3da55a' },
+            { base: '#FBC02C', hover: '#FBC02C' },
+            { base: '#833D90', hover: '#833D90' },
+            { base: '#E9417A', hover: '#E9417A' }
+        ];
+        const selectedColor = colorList[Math.floor(Math.random() * colorList.length)];
+        document.documentElement.style.setProperty('--arrow-color', selectedColor.base);
+        document.documentElement.style.setProperty('--arrow-hover-color', selectedColor.hover);
+        document.documentElement.style.setProperty('--today-background-color', selectedColor.base);
+        document.documentElement.style.setProperty('--today-text-color', '#FFFFFF');
+
+        const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", 
+                            "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+        let currentDate = new Date();
+        const events = {
+            "2024-11-18": { name: "COSTRAT", time: "13:30", location: "Multi-site" },
+            "2024-11-19": { name: "Forum", time: "13:30", location: "Multi-site" },
+            "2024-11-21": { name: "DUODAY 2024", time: "09:00", location: "Multi-site" },
+            "2024-12-02": { name: "COSTRAT", time: "13:30", location: "Multi-site" },
+            "2024-12-05": { name: "CSRR", time: "14:00", location: "Multi-site" },
+            "2024-12-10": { name: "CSE", time: "09:30", location: "Multi-site" },
+            "2024-12-12": { name: "Conseil", time: "09:30", location: "Multi-site" },
+            "2024-12-16": { name: "COSTRAT", time: "16:30", location: "Multi-site" },
+            "2024-12-19": { name: "Rencontres managériales", time: "Journée entière", location: "Multi-site" },
+            "2025-01-09": { name: "CSRR", time: "14:00", location: "Multi-site" },
+            "2025-01-13": { name: "COSTRAT", time: "13:30", location: "Multi-site" },
+            "2025-01-14": { name: "CSE", time: "09:30", location: "Multi-site" },
+            "2025-01-16": { name: "Rencontres managériales", time: "Journée entière", location: "Multi-site" },
+            "2025-04-22": { name: "Cérémonie des Voeux 2025", time: "16:30", location: "Multi-site" },
+            "2025-01-23": { name: "FORUM/Cérémonie des Voeux 2025", time: "Journée entière/16:00", location: "Saint-Nazaire/Nantes" },
+            "2025-01-27": { name: "COSTRAT", time: "13:30", location: "Multi-site" },
+            "2025-02-04": { name: "CSSCT/CSRR", time: "09:30/14:00", location: "Multi-site" },
+            "2025-02-10": { name: "COSTRAT", time: "13:30", location: "Multi-site" },
+            "2025-02-24": { name: "COSTRAT", time: "13:30", location: "Multi-site" },
+            "2025-02-25": { name: "CSE", time: "09:30", location: "Multi-site" },
+            "2025-03-06": { name: "CSRR", time: "14:00", location: "Multi-site" },
+            "2025-03-10": { name: "COSTRAT", time: "13:30", location: "Multi-site" },
+            "2025-03-13": { name: "CONSEIL", time: "09:30", location: "Multi-site" },
+            "2025-03-18": { name: "CSE", time: "09:30", location: "Multi-site" },
+            "2025-03-20": { name: "FORUM", time: "Journée entière", location: "Multi-site" },
+            "2025-03-24": { name: "COSTRAT", time: "13:30", location: "Multi-site" },
+            "2025-04-01": { name: "Commission Gestion du Risque", time: "09:30", location: "Multi-site" },
+            "2025-04-03": { name: "CSRR", time: "14:00", location: "Multi-site" },
+            "2025-04-07": { name: "COSTRAT", time: "13:30", location: "Multi-site" },
+            "2025-04-22": { name: "COSTRAT", time: "13:30", location: "Multi-site" },
+            "2025-04-22": { name: "Comission des Relation avec les Usagers/Finances", time: "09:30/14:00", location: "Multi-site" },
+            "2025-04-29": { name: "CSE", time: "09:30", location: "Multi-site" }
+        
+        };
+
+        function showEventDetails(event) {
+            const eventDetails = document.getElementById('eventDetails');
+            document.getElementById('eventName').textContent = `Nom : ${event ? event.name : "Aucun événement"}`;
+            document.getElementById('eventTime').textContent = `Heure : ${event ? event.time : ""}`;
+            document.getElementById('eventLocation').textContent = `Lieu : ${event ? event.location : ""}`;
+            eventDetails.style.display = "block";
+        }
+
+        function hideEventDetails() {
+            const eventDetails = document.getElementById('eventDetails');
+            eventDetails.style.display = "none";
+        }
+
+        function renderCalendar() {
+            const monthYear = document.getElementById('monthYear');
+            const calendarDays = document.getElementById('calendarDays');
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+            const firstDayIndex = (firstDay.getDay() + 6) % 7;  // Lundi = 0, Mardi = 1, etc.
+            const lastDayIndex = (new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDay() + 6) % 7;
+            const nextDays = 6 - lastDayIndex;
+
+            monthYear.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+            calendarDays.innerHTML = '';
+            
+            for (let x = firstDayIndex; x > 0; x--) {
+                const day = document.createElement('div');
+                day.classList.add('prev-date');
+                day.textContent = new Date(currentDate.getFullYear(), currentDate.getMonth(), -x + 1).getDate();
+                calendarDays.appendChild(day);
+            }
+
+            for (let i = 1; i <= lastDay; i++) {
+                const day = document.createElement('div');
+                day.textContent = i;
+                const currentDateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                
+                day.addEventListener('click', () => {
+                    hideEventDetails();
+                    if (events[currentDateStr]) {
+                        showEventDetails(events[currentDateStr]);
+                    }
+                });
+
+                if (events[currentDateStr]) {
+                    day.classList.add('has-event');
+                }
+                if (i === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear()) {
+                    day.classList.add('today');
+                }
+                calendarDays.appendChild(day);
+            }
+
+            for (let j = 1; j <= nextDays; j++) {
+                const day = document.createElement('div');
+                day.classList.add('next-date');
+                day.textContent = j;
+                calendarDays.appendChild(day);
+            }
+
+            const date = new Date();
+            const start = new Date(date.getFullYear(), 0, 0);
+            const diff = date - start;
+            const oneDay = 1000 * 60 * 60 * 24;
+            const dayOfYear = Math.floor(diff / oneDay);
+            const quantiemeElement = document.getElementById('quantieme');
+            quantiemeElement.textContent = `Quantième : ${dayOfYear}`;
+        }
+
+        document.getElementById('prevMonth').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+            hideEventDetails();
+        });
+        document.getElementById('nextMonth').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+            hideEventDetails();
+        });
+
+        renderCalendar();
+    </script>
+</body>
+</html>
